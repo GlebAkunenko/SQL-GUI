@@ -25,6 +25,7 @@ with dpg.window(tag="Primary Window"):
     connection = auth("moderator", "moderator")
     partner_stat(connection)
     persons_stat(connection)
+    free_rooms(connection)
     free_after(connection)
     partners_prefs(connection)
     persons_info(connection)
