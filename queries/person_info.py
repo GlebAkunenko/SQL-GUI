@@ -36,11 +36,75 @@ def persons_info(connection):
                 dpg.add_listbox(hotels, width=500, callback=hotel.get_callback())
                 dpg.add_listbox(numbers, width=100, callback=number.get_callback(), tag=f"n{P}", parent=f"p{P}", label="Номер")
 
-        with dpg.group(horizontal=True):
+        with dpg.group(tag=f'result{P}'):
 
-            with dpg.group(tag=f"rn{P}"):
-                ...
+            def show_result(value=0):
+                with connection() as conn, conn.cursor() as cur:
+                    cur.execute("select id from hotels where address = %s", (hotel.value,))
+                    h_id = cur.fetchone()[0]
+                    cur.execute("select id from rooms where hotel = %s and number = %s", (h_id, number.value))
+                    r_id = cur.fetchone()[0]
+                    sql = """
+                    select c.person from contracts c
+                    join persons p on c.person = p.id
+                    where
+                        curdate() between c.start and c.end
+                        and c.room = %s
+                    """
+                    cur.execute(sql, (r_id,))
+                    p_id = cur.fetchone()
 
+                dpg.delete_item(f'result_body{P}')
+                with dpg.group(horizontal=True, parent=f'result{P}', tag=f'result_body{P}'):
+                    if p_id is None:
+                        dpg.add_text("На данный момент комната не заселена")
+                    else:
+                        p_id = p_id[0]
+                        with connection() as conn, conn.cursor() as cur:
+                            cur.execute("select * from persons where id = %s", (p_id,))
+                            info = cur.fetchone()
+                            cur.execute("select f.content from feedbacks f join contracts c on f.contract = c.id where c.person = %s", (p_id,))
+                            feedbacks = cur.fetchall()
+                            print(feedbacks)
+                        with connection() as conn, conn.cursor() as cur:
+                            cur.execute("call bill_info(%s, %s)", (p_id, r_id))
+                            bills = cur.fetchall()
+
+                        dpg.add_text(f"""
+                        ФИО:\t\t\t\t\t\t{info[2]} {info[1]} {info[3]}
+                        Дата рождения:\t\t\t{info[4]}
+                        Паспорт:\t\t\t\t{info[6]}
+                        """)
+
+                        if bills is not None:
+                            with dpg.table(header_row=True, row_background=True,
+                                           borders_innerH=True, borders_outerH=True, borders_innerV=True,
+                                           borders_outerV=True, delay_search=True, resizable=True, width=500):
+                                dpg.add_table_column(label='Услуга')
+                                dpg.add_table_column(label='Счёт')
+
+                            for row in bills:
+                                with dpg.table_row():
+                                    for i in range(2):
+                                        dpg.add_text(str(row[i]))
+
+                        if feedbacks:
+                            with dpg.table(header_row=True, row_background=True,
+                                           borders_innerH=True, borders_outerH=True, borders_innerV=True,
+                                           borders_outerV=True, delay_search=True, resizable=True):
+                                dpg.add_table_column(label='Жалобы')
+
+                                print(feedbacks)
+                                for row in feedbacks:
+                                    with dpg.table_row():
+                                        if row[0]:
+                                            dpg.add_text(str(row[0]))
+                        else:
+                            dpg.add_text("Жалобы отстутствуют")
+
+            show_result()
+            hotel.handlers.append(show_result)
+            number.handlers.append(show_result)
 
         # def execute(sender, app, user_data):
         #     data = get_data()
