@@ -30,6 +30,7 @@ with dpg.window(tag="Primary Window"):
     partners_prefs(connection)
     persons_info(connection)
     room_stat(connection)
+    hotels_stat(connection)
 
 
 dpg.create_viewport(title='Custom Title', width=600, height=200)
