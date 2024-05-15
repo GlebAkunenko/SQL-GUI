@@ -6,3 +6,4 @@ from .partners_and_rooms import partners_prefs
 from .person_info import persons_info
 from .rooms_stat import room_stat
 from .hotels_stat import hotels_stat
+from .partners_time import partners_times
